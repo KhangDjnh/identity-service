@@ -5,6 +5,7 @@ import com.devteria.indentity_service.dto.request.UserUpdateRequest;
 import com.devteria.indentity_service.dto.resqonse.UserResponse;
 import com.devteria.indentity_service.entity.Role;
 import com.devteria.indentity_service.entity.User;
+import com.devteria.indentity_service.enums.Roles;
 import com.devteria.indentity_service.exception.AppExceprion;
 import com.devteria.indentity_service.exception.ErrorCode;
 import com.devteria.indentity_service.mapper.UserMapper;
@@ -39,9 +40,10 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-//        HashSet<String> roles = new HashSet<>();
-//        roles.add(Role.USER.name());
-//        user.setRoles(roles);
+        HashSet<Role> roles = new HashSet<>();
+        roles.add(roleRepository.findById(Roles.USER.name())
+                .orElseThrow(() -> new AppExceprion(ErrorCode.ROLE_NOT_FOUND)));
+        user.setRoles(roles);
         user.setActive(true);
         userRepository.save(user);
 

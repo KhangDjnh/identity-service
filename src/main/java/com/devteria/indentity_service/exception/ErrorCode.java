@@ -19,7 +19,7 @@ public enum ErrorCode {
     USERNAME_OR_PASSWORD_IS_WRONG(1006, "Username or password is incorrect", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(1007, "Authentication failed", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1008, "You do not have permissioon", HttpStatus.FORBIDDEN),
-    ROLE_NOT_FOUND(1009, "Role not found", HttpStatus.NOT_FOUND)
+    ROLE_NOT_FOUND(1009, "Roles not found", HttpStatus.NOT_FOUND)
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

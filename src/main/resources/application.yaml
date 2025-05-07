@@ -14,3 +14,8 @@ spring:
     show-sql: true
 jwt:
   signerKey: "W6mv3thAVmGXMJqCA40HSrI63EFHPfTVtf4lo6FZEaXWDn3UQoZYK/bQ/aPbxUlB"
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

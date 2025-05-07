@@ -3,6 +3,7 @@ package com.devteria.indentity_service.configuration;
 
 import com.devteria.indentity_service.entity.User;
 import com.devteria.indentity_service.entity.Role;
+import com.devteria.indentity_service.enums.Roles;
 import com.devteria.indentity_service.repository.RoleRepository;
 import com.devteria.indentity_service.repository.UserRepository;
 import lombok.AccessLevel;
@@ -30,14 +31,12 @@ public class ApplicationInitConfig {
                                         RoleRepository roleRepository) {
         return args -> {
             if (userRepository.findByUsername("admin").isEmpty()) {
-                // Lấy Role ADMIN từ DB
-                Role adminRole = roleRepository.findById("ADMIN")
-                        .orElseThrow(() -> new RuntimeException("Role ADMIN not found"));
+                // Lấy Roles ADMIN từ DB
+                Role adminRole = roleRepository.findById(Roles.ADMIN.name())
+                        .orElseThrow(() -> new RuntimeException("Roles ADMIN not found"));
 
                 Set<Role> roles = new HashSet<>();
                 roles.add(adminRole);
-                log.info("Admin role found {}", adminRole.getName());
-                log.info("role {}", roles);
 
                 User user = User.builder()
                         .username("admin")

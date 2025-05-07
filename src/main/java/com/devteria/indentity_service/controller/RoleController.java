@@ -43,7 +43,7 @@ public class RoleController {
         return ApiResponse.<String>builder()
                 .message("Success")
                 .code(1000)
-                .result("Role deleted")
+                .result("Roles deleted")
                 .build();
     }
 }
