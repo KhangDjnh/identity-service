@@ -1,11 +1,11 @@
 package com.devteria.indentity_service.dto.request;
 
+import com.devteria.indentity_service.validator.DobConstraint;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
-import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -19,5 +19,6 @@ public class UserCreationRequest {
     String password;
     String firstName;
     String lastName;
+    @DobConstraint(min = 16, message = "DOB_INVALID")
     LocalDate dob;
 }
