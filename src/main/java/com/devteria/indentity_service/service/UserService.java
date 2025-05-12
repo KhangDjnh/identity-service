@@ -6,7 +6,7 @@ import com.devteria.indentity_service.dto.resqonse.UserResponse;
 import com.devteria.indentity_service.entity.Role;
 import com.devteria.indentity_service.entity.User;
 import com.devteria.indentity_service.enums.Roles;
-import com.devteria.indentity_service.exception.AppExceprion;
+import com.devteria.indentity_service.exception.AppException;
 import com.devteria.indentity_service.exception.ErrorCode;
 import com.devteria.indentity_service.mapper.UserMapper;
 import com.devteria.indentity_service.repository.RoleRepository;
@@ -34,15 +34,17 @@ public class UserService {
     PasswordEncoder passwordEncoder;
 
     public UserResponse createUser(UserCreationRequest request) {
+        log.info("Service Create user");
+
         if(userRepository.existsByUsername(request.getUsername())) {
-            throw new AppExceprion(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.USER_EXISTED);
         }
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         HashSet<Role> roles = new HashSet<>();
         roles.add(roleRepository.findById(Roles.USER.name())
-                .orElseThrow(() -> new AppExceprion(ErrorCode.ROLE_NOT_FOUND)));
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)));
         user.setRoles(roles);
         user.setActive(true);
         userRepository.save(user);
@@ -60,17 +62,17 @@ public class UserService {
     @PostAuthorize("returnObject.username == authentication.name")
     public UserResponse getUserById(String userId) {
         return userMapper.toUserResponse(userRepository.findByIdAndIsActive(userId, true)
-                .orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST)));
+                .orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST)));
     }
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
         String username = context.getAuthentication().getName();
 
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST));
         return userMapper.toUserResponse(user);
     }
     public UserResponse updateUser(String userId, UserUpdateRequest request) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST));
         userMapper.updateUser(user,request);
         if (request.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -79,7 +81,7 @@ public class UserService {
         List<Role> roles = roleRepository.findAllById(roleIds);
 
         if (roles.size() != roleIds.size()) {
-            throw new AppExceprion(ErrorCode.ROLE_NOT_FOUND);
+            throw new AppException(ErrorCode.ROLE_NOT_FOUND);
         }
 
         user.setRoles(new HashSet<>(roles));
@@ -87,7 +89,7 @@ public class UserService {
         return userMapper.toUserResponse(user);
     }
     public void deleteUser(String userId) {
-        User user = userRepository.findByIdAndIsActive(userId, true).orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST));
+        User user = userRepository.findByIdAndIsActive(userId, true).orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST));
         user.setActive(false);
     }
     public void deleteAllUsers() {

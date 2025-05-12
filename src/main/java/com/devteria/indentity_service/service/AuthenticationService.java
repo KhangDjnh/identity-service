@@ -8,7 +8,7 @@ import com.devteria.indentity_service.dto.resqonse.AuthenticationResponse;
 import com.devteria.indentity_service.dto.resqonse.IntrospectResponse;
 import com.devteria.indentity_service.entity.InvalidatedToken;
 import com.devteria.indentity_service.entity.User;
-import com.devteria.indentity_service.exception.AppExceprion;
+import com.devteria.indentity_service.exception.AppException;
 import com.devteria.indentity_service.exception.ErrorCode;
 import com.devteria.indentity_service.repository.InvalidatedRepository;
 import com.devteria.indentity_service.repository.UserRepository;
@@ -98,21 +98,21 @@ public class AuthenticationService {
                 : signedJWT.getJWTClaimsSet().getExpirationTime();
         var verified = signedJWT.verify(verifier);
         if (!verified || expiryTime.before(new Date())) {
-            throw new AppExceprion(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
         if (invalidatedRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
-            throw new AppExceprion(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
         return signedJWT;
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         var user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST));
+                .orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST));
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         var authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if (!authenticated) {
-            throw new AppExceprion(ErrorCode.USERNAME_OR_PASSWORD_IS_WRONG);
+            throw new AppException(ErrorCode.USERNAME_OR_PASSWORD_IS_WRONG);
         }
         return AuthenticationResponse.builder()
                 .token(generateToken(user))
@@ -131,7 +131,7 @@ public class AuthenticationService {
                     .expiryTime(expiryTime)
                     .build();
             invalidatedRepository.save(invalidatedToken);
-        } catch (AppExceprion exceprion) {
+        } catch (AppException exceprion) {
             log.warn("Token already expiration");
         }
     }
@@ -147,7 +147,7 @@ public class AuthenticationService {
         invalidatedRepository.save(invalidatedToken);
         return AuthenticationResponse.builder()
                 .token(generateToken(userRepository.findByUsername(signJWT.getJWTClaimsSet().getSubject())
-                        .orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST))))
+                        .orElseThrow(() -> new AppException(ErrorCode.USERNAME_NOT_EXIST))))
                 .build();
     }
 
@@ -157,7 +157,7 @@ public class AuthenticationService {
         boolean isValid = true;
         try {
             verifyToken(token, false);
-        } catch (AppExceprion e) {
+        } catch (AppException e) {
             isValid = false;
         }
         return IntrospectResponse.builder()

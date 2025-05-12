@@ -1,6 +1,6 @@
 package com.devteria.indentity_service.exception;
 
-public class AppExceprion extends RuntimeException {
+public class AppException extends RuntimeException {
 
     private ErrorCode errorCode;
 
@@ -12,7 +12,7 @@ public class AppExceprion extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public AppExceprion(ErrorCode errorCode) {
+    public AppException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
