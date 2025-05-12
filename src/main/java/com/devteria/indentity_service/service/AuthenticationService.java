@@ -3,6 +3,7 @@ package com.devteria.indentity_service.service;
 import com.devteria.indentity_service.dto.request.AuthenticationRequest;
 import com.devteria.indentity_service.dto.request.IntrospectRequest;
 import com.devteria.indentity_service.dto.request.LogoutRequest;
+import com.devteria.indentity_service.dto.request.RefreshRequest;
 import com.devteria.indentity_service.dto.resqonse.AuthenticationResponse;
 import com.devteria.indentity_service.dto.resqonse.IntrospectResponse;
 import com.devteria.indentity_service.entity.InvalidatedToken;
@@ -43,6 +44,12 @@ public class AuthenticationService {
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;
 
+    @Value("${jwt.valid-duration}")
+    protected long VALID_DURATION;
+
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESH_DURATION;
+
     private String buildScope(User user) {
         StringJoiner stringJoiner = new StringJoiner(" ");
         if (!CollectionUtils.isEmpty(user.getRoles())) {
@@ -64,7 +71,7 @@ public class AuthenticationService {
                 .issuer("devteria.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
+                        Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()
                 ))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
@@ -82,10 +89,13 @@ public class AuthenticationService {
         }
     }
 
-    private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
+    private SignedJWT verifyToken(String token, boolean isRefresh) throws ParseException, JOSEException {
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        Date expiryTime = (isRefresh)
+                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
+                    .toInstant().plus(REFRESH_DURATION, ChronoUnit.SECONDS).toEpochMilli())
+                : signedJWT.getJWTClaimsSet().getExpirationTime();
         var verified = signedJWT.verify(verifier);
         if (!verified || expiryTime.before(new Date())) {
             throw new AppExceprion(ErrorCode.UNAUTHENTICATED);
@@ -110,16 +120,35 @@ public class AuthenticationService {
     }
 
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
-        var signToken = verifyToken(request.getToken());
+        try {
+            var signToken = verifyToken(request.getToken(), true);
 
-        String jit = signToken.getJWTClaimsSet().getJWTID();
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .tokenId(jit)
+                    .expiryTime(expiryTime)
+                    .build();
+            invalidatedRepository.save(invalidatedToken);
+        } catch (AppExceprion exceprion) {
+            log.warn("Token already expiration");
+        }
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
+        var signJWT = verifyToken(request.getToken(), true);
+        String jit = signJWT.getJWTClaimsSet().getJWTID();
+        Date expiryTime = signJWT.getJWTClaimsSet().getExpirationTime();
         InvalidatedToken invalidatedToken = InvalidatedToken.builder()
                 .tokenId(jit)
                 .expiryTime(expiryTime)
                 .build();
         invalidatedRepository.save(invalidatedToken);
+        return AuthenticationResponse.builder()
+                .token(generateToken(userRepository.findByUsername(signJWT.getJWTClaimsSet().getSubject())
+                        .orElseThrow(() -> new AppExceprion(ErrorCode.USERNAME_NOT_EXIST))))
+                .build();
     }
 
     public IntrospectResponse introspect(IntrospectRequest request)
@@ -127,7 +156,7 @@ public class AuthenticationService {
         var token = request.getToken();
         boolean isValid = true;
         try {
-            verifyToken(token);
+            verifyToken(token, false);
         } catch (AppExceprion e) {
             isValid = false;
         }
