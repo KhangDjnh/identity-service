@@ -2,37 +2,47 @@ package com.devteria.indentity_service.controller;
 
 import com.devteria.indentity_service.dto.request.UserCreationRequest;
 import com.devteria.indentity_service.dto.resqonse.UserResponse;
-import com.devteria.indentity_service.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 
 @SpringBootTest
 @Slf4j
 @AutoConfigureMockMvc
-@TestPropertySource("/test.properties")
-public class UserControllerTest {
+@Testcontainers
+public class UserControllerIntegrationTest {
+
+    @Container
+    static final MySQLContainer<?> MY_SQL_CONTAINER = new MySQLContainer<>("mysql:latest");
+
+    @DynamicPropertySource
+    static void configureDataSource(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", MY_SQL_CONTAINER::getJdbcUrl);
+        registry.add("spring.datasource.username", MY_SQL_CONTAINER::getUsername);
+        registry.add("spring.datasource.password", MY_SQL_CONTAINER::getPassword);
+        registry.add("spring.datasource.driverClassName", () -> "com.mysql.cj.jdbc.Driver");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
+
+    }
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockBean
-    private UserService userService;
 
     private UserCreationRequest request;
     private UserResponse userResponse;
@@ -65,9 +75,6 @@ public class UserControllerTest {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         String content = objectMapper.writeValueAsString(request);
-
-        Mockito.when(userService.createUser(ArgumentMatchers.any()))
-                .thenReturn(userResponse);
 
         //WHEN, THEN
         mockMvc.perform(MockMvcRequestBuilders

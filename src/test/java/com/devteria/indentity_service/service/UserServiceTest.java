@@ -30,13 +30,11 @@ public class UserServiceTest {
     private UserRepository userRepository;
 
     private UserCreationRequest request;
-    private UserResponse userResponse;
     private User user;
-    private LocalDate dob;
 
     @BeforeEach
     void initData() {
-        dob = LocalDate.of(1990, 1, 1);
+        LocalDate dob = LocalDate.of(1990, 1, 1);
 
         request = UserCreationRequest.builder()
                 .username("john")
@@ -46,7 +44,7 @@ public class UserServiceTest {
                 .dob(dob)
                 .build();
 
-        userResponse = UserResponse.builder()
+        UserResponse userResponse = UserResponse.builder()
                 .id("cf0600f538b3")
                 .username("john")
                 .firstName("John")
@@ -73,7 +71,7 @@ public class UserServiceTest {
         var response = userService.createUser(request);
         // THEN
 
-        Assertions.assertThat(response.getId()).isEqualTo("cf0600f538b3");
+        Assertions.assertThat(response.getDob()).isEqualTo("1990-01-01");
         Assertions.assertThat(response.getUsername()).isEqualTo("john");
     }
 
